@@ -73,35 +73,36 @@ function Dashboard() {
     };
 
     return (
-        <div className='min-h-screen bg-gray-50'>
+        <div className='dashscreen'>
             {/* Navbar */}
-            <nav className='bg-blue-700 text-white shadow-md'>
-                <div className='max-w-6xl mx-auto px-4 py-4 flex justify-between items-center'>
-                    <h1 className='text-xl font-bold tracking-wide'>Cluster Management</h1>
-                    <button onClick={handleLogout} className='bg-red-500 hover:bg-red-600 px-4 py-1.5 rounded text-sm transition'>Logout</button>
+            <nav className='dashnav'>
+                <div className='dashnava'>
+                    <h1>Cluster Management System</h1>
+                    <button onClick={handleLogout}>Logout</button>
                 </div>
             </nav>
 
             <div className='max-w-6xl mx-auto p-6 space-y-8'>
                 
                 {/* --- HEADER SECTION --- */}
-                <div className='bg-white p-6 rounded-lg shadow-sm border border-gray-200'>
+                <div className='dashhead'>
                     {role === 'leader' ? (
                         // ADMIN VIEW
                         <div className='flex flex-col md:flex-row justify-between items-center gap-4'>
                             <div>
-                                <h2 className='text-2xl font-bold text-gray-800'>Admin Dashboard</h2>
-                                <p className='text-gray-500'>Manage your cluster members below.</p>
+                                <h2 className='dashtitle'>Admin Dashboard</h2>
+                                <p className='dashp'>Manage your cluster members below.</p>
                             </div>
+
                             <div className='flex gap-2 w-full md:w-auto'>
                                 <input 
                                     type="password" 
                                     placeholder="New Admin Password" 
-                                    className='border p-2 rounded flex-1 md:w-64' 
+                                    className='dashadpw' 
                                     value={newPassword} 
                                     onChange={e => setNewPassword(e.target.value)} 
                                 />
-                                <button onClick={handleResetAdminPassword} className='bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded shadow transition'>
+                                <button onClick={handleResetAdminPassword} className='bg-white/0 border border-white hover:bg-red-600 text-white px-4 py-2 rounded-[10px] shadow transition'>
                                     Reset Password
                                 </button>
                             </div>
@@ -131,10 +132,10 @@ function Dashboard() {
 
                 {/* --- LEADER ONLY: MEMBER LIST WITH LOAN GRAPHS --- */}
                 {role === 'leader' && (
-                    <div className='bg-white p-6 rounded-lg shadow-sm border border-gray-200'>
+                    <div className='dashmember'>
                         <div className='flex justify-between items-center mb-6'>
-                            <h2 className='text-xl font-bold text-gray-800'>Cluster Members List</h2>
-                            <Link to="/add-member" className='bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 transition flex items-center gap-1'>
+                            <h2 className='membertitle'>Cluster Members List</h2>
+                            <Link to="/add-member" className='addmember'>
                                 <span className="text-lg font-bold">+</span> Add Member
                             </Link>
                         </div>
@@ -148,47 +149,47 @@ function Dashboard() {
                                 return (
                                     <div key={index} 
                                          onClick={() => navigate(`/member/${member.id}`)}
-                                         className='p-4 border rounded-lg bg-gray-50 flex flex-col gap-3 cursor-pointer hover:bg-blue-50 transition border-transparent hover:border-blue-200 relative group'>
+                                         className='membercard'>
                                         
                                         {/* Top Section: Info */}
                                         <div className='flex items-center gap-4'>
-                                            <div className='w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0'>
+                                            <div className='w-12 h-12 rounded-[7px] bg-gray-200 overflow-hidden flex-shrink-0'>
                                                 {member.profile_picture ? 
                                                     <img src={`http://localhost:8081/images/${member.profile_picture}`} className='w-full h-full object-cover' alt="Member"/> : 
                                                     <div className='w-full h-full flex items-center justify-center text-xs text-gray-500'>No Img</div>
                                                 }
                                             </div>
                                             <div className='flex-1'>
-                                                <p className='font-semibold text-gray-700'>{member.full_name}</p>
-                                                <p className='text-xs text-gray-500'>{member.phone_number}</p>
+                                                <p className='font-semibold text-white'>{member.full_name}</p>
+                                                <p className='text-xs text-white'>{member.phone_number}</p>
                                             </div>
                                             
                                             {/* DELETE BUTTON */}
                                             <button 
                                                 onClick={(e) => handleDeleteMember(e, member.id)}
-                                                className='bg-red-100 text-red-600 p-2 rounded hover:bg-red-500 hover:text-white transition z-10'
+                                                className='bg-white/0 border border-1 text-white px-2 py-[2px] rounded-[7px] hover:bg-red-500 hover:text-white transition z-10'
                                                 title="Delete Member"
                                             >
-                                                🗑
+                                                Delete
                                             </button>
                                         </div>
 
                                         {/* Loan Bar Graph */}
                                         {member.total_amount ? (
                                             <div className='mt-1'>
-                                                <div className='flex justify-between text-xs text-gray-500 mb-1'>
+                                                <div className='flex justify-between text-xs text-white mb-1'>
                                                     <span>Loan Progress</span>
                                                     <span>{Math.round(progress)}% Paid</span>
                                                 </div>
                                                 <div className='w-full bg-gray-200 rounded-full h-2.5'>
                                                     <div 
-                                                        className='bg-blue-600 h-2.5 rounded-full transition-all duration-500' 
+                                                        className='bg-blue-600 h-2.5 rounded-full transition-all duration-500 mt-[20px]' 
                                                         style={{ width: `${progress}%` }}
                                                     ></div>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className='text-xs text-gray-400 italic mt-2'>No active loans</div>
+                                            <div className='text-xs text-white italic mt-2'>No active loans</div>
                                         )}
                                     </div>
                                 )

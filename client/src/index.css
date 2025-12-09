@@ -2,11 +2,259 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'sf';
+  src: url('./assets/SFPRODISPLAYREGULAR.OTF') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/*Login*/
+
 @layer base {
   html {
-    font-family: 'Inter', system-ui, sans-serif; /* Clean, readable font */
+    font-family: 'sf', sans-serif;
   }
+
   body {
-    @apply bg-gray-50 text-gray-800; /* Soft grey background for less eye strain */
+    @apply 
+    bg-cover
+    bg-no-repeat
+    bg-[url(/src/assets/background.png)]
   }
 }
+
+.mainlogin {
+  @apply
+  bg-white/0 
+  backdrop-blur-[50px]
+  p-[50px] 
+  rounded-[40px]
+  shadow-lg 
+  w-full 
+  max-w-sm 
+  border 
+  border-white/20
+}
+
+.logintitle {
+  @apply
+  text-2xl 
+  font-bold 
+  mb-6 
+  text-center 
+  text-white
+}
+
+.error {
+  @apply
+  text-white
+  text-sm 
+  mb-4 
+  text-center 
+  bg-[#880808]/90
+  backdrop-blur-[40px]
+  p-2 
+  rounded-[8px]
+}
+
+.phone {
+  @apply
+  block 
+  text-sm 
+  font-medium 
+  text-white 
+  mb-1
+}
+
+.password {
+  @apply
+  block 
+  text-sm 
+  font-medium 
+  text-white 
+  mb-1
+}
+
+.loginnumber {
+  @apply
+  bg-white/0
+  backdrop-blur-lg
+  w-full 
+  p-2
+  pl-3 
+  border 
+  border-gray-300 
+  rounded-[10px]
+  focus:outline-none 
+  focus:ring-2 
+  focus:ring-blue-500 
+  transition
+}
+
+.loginpassword {
+  @apply
+  bg-white/0
+  backdrop-blur-lg
+  w-full 
+  p-2
+  pl-3 
+  border 
+  border-gray-300 
+  rounded-[10px]
+  focus:outline-none 
+  focus:ring-2 
+  focus:ring-blue-500 
+  transition
+}
+
+.loginbutton {
+  @apply
+  w-full 
+  bg-blue-600 
+  hover:bg-blue-700 
+  text-white 
+  font-semibold
+  py-2 
+  px-4 
+  rounded-[10px]
+  transition duration-200
+}
+
+/*Dashboard*/
+
+.dashscreen {
+  @apply
+  min-h-screen
+}
+
+.dashnav {
+  @apply
+  bg-white/10
+  backdrop-blur-[50px]
+  text-white 
+  shadow-md
+}
+
+.dashnava {
+  @apply
+  border-b-[1px]
+  max-w-6xl 
+  mx-auto 
+  px-4 
+  py-4 
+  flex 
+  justify-between 
+  items-center
+}
+
+.dashnava h1 {
+  @apply
+  text-xl  
+  tracking-wide
+}
+
+.dashnava button {
+  @apply
+  bg-white/0 
+  hover:bg-red-600 
+  px-4 py-1.5 
+  rounded-[10px]
+  border
+  border-white 
+  text-sm 
+  transition
+}
+
+.dashhead {
+  @apply
+  bg-white/0
+  backdrop-blur-[50px]
+  p-6 
+  rounded-[30px]
+  shadow-sm
+  border 
+  border-white/20
+}
+
+.dashtitle {
+  @apply
+  text-2xl 
+  font-bold 
+  text-white
+}
+
+.dashp {
+  @apply
+  text-white
+}
+
+.dashadpw {
+  @apply
+  border
+  border-[1px]
+  border-white
+  p-2
+  bg-white/10
+  rounded-[10px]
+  flex-1 
+  md:w-64
+}
+
+
+
+.dashmember {
+  @apply
+  bg-white/0
+  backdrop-blur-[50px]
+  p-6 
+  rounded-[30px] 
+  shadow-sm 
+  border 
+  border-white/20
+}
+
+.membertitle {
+  @apply
+  text-xl 
+  font-bold 
+  text-white
+}
+
+.membercard {
+  @apply
+  p-4 
+  border
+  border-white/20
+  rounded-[12px] 
+  bg-white/10
+  backdrop-blur-[50px] 
+  flex 
+  flex-col 
+  gap-3 
+  cursor-pointer 
+  hover:bg-white/30 
+  transition 
+  hover:border-blue-200 
+  relative
+}
+
+.addmember {
+  @apply
+  border
+  border-white
+  bg-white/0
+  text-white 
+  px-4 
+  py-2 
+  rounded-[10px] 
+  shadow 
+  hover:bg-blue-700 
+  transition 
+  flex 
+  items-center 
+  gap-1
+}
+
+/*Admin Member View*/
+
