@@ -1,9 +1,21 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/userModel');
 
+// --- HELPER: Strong Password Validator ---
+const isStrongPassword = (password) => {
+    // Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return regex.test(password);
+};
+
 exports.addMember = async (req, res) => {
     if (req.user.role !== 'leader') return res.json({ Error: "Access Denied" });
     
+    // 1. Validate Password Strength
+    if (!isStrongPassword(req.body.password)) {
+        return res.json({ Error: "Password too weak. Must be 8+ chars, include uppercase, lowercase, number, and special char." });
+    }
+
     const hash = await bcrypt.hash(req.body.password.toString(), 10);
     const data = {
         full_name: req.body.full_name,
@@ -15,7 +27,7 @@ exports.addMember = async (req, res) => {
     };
 
     User.create(data, (err) => {
-        if (err) return res.json({ Error: "Error inserting data" });
+        if (err) return res.json({ Error: "Error inserting data. Phone number might already exist." });
         return res.json({ Status: "Success" });
     });
 };
@@ -50,6 +62,11 @@ exports.deleteMember = (req, res) => {
 };
 
 exports.updateAdminPassword = async (req, res) => {
+    // Validate Admin New Password
+    if (!isStrongPassword(req.body.new_password)) {
+        return res.json({ Error: "Weak Password. Use 8+ chars, Uppercase, Lowercase, Number, Special Char." });
+    }
+
     const hash = await bcrypt.hash(req.body.new_password.toString(), 10);
     User.updatePassword(req.user.id, hash, (err) => {
         if (err) return res.json({ Error: "Error updating password" });
@@ -70,4 +87,31 @@ exports.updateMemberDetails = (req, res) => {
         if (err) return res.json({ Error: "Error updating member" });
         return res.json({ Status: "Success" });
     });
+};
+
+// NEW: Admin updates Member Authentication (Phone & Password)
+exports.updateMemberAuth = async (req, res) => {
+    if (req.user.role !== 'leader') return res.json({ Error: "Access Denied" });
+    
+    const { new_phone, new_password } = req.body;
+    const memberId = req.params.id;
+
+    // Optional: Only update what is provided
+    if (new_phone) {
+        User.updatePhone(memberId, new_phone, (err) => {
+            if (err) console.log("Phone update error:", err);
+        });
+    }
+
+    if (new_password) {
+        if (!isStrongPassword(new_password)) {
+            return res.json({ Error: "Weak Password. Use 8+ chars, Uppercase, Lowercase, Number, Special Char." });
+        }
+        const hash = await bcrypt.hash(new_password.toString(), 10);
+        User.updatePassword(memberId, hash, (err) => {
+            if (err) return res.json({ Error: "Error updating password" });
+        });
+    }
+
+    return res.json({ Status: "Success" });
 };

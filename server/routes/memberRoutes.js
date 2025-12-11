@@ -18,5 +18,6 @@ router.delete('/delete-member/:id', verifyToken, memberController.deleteMember);
 router.put('/reset-admin-password', verifyToken, memberController.updateAdminPassword);
 router.put('/update-admin-phone', verifyToken, memberController.updateAdminPhone);
 router.put('/update-member/:id', verifyToken, memberController.updateMemberDetails);
+router.put('/update-member-auth/:id', verifyToken, memberController.updateMemberAuth);
 
 module.exports = router;
