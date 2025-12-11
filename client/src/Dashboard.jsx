@@ -3,15 +3,17 @@ import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 
 function Dashboard() {
+    // 1. STATE DECLARATIONS
     const [role, setRole] = useState('');
     const [members, setMembers] = useState([]);
     const [records, setRecords] = useState([]); 
     const [notifications, setNotifications] = useState([]); 
     const [showNotif, setShowNotif] = useState(false);
     
-    // NEW: Filter State for Member View
+    // Filter State
     const [filterType, setFilterType] = useState('all');
 
+    // Data State
     const [myData, setMyData] = useState({
         user: {},
         activeLoan: null,
@@ -24,6 +26,7 @@ function Dashboard() {
     const [newPhone, setNewPhone] = useState('');
     const navigate = useNavigate();
 
+    // 2. USE EFFECT (Fetch Data)
     useEffect(() => {
         const storedRole = localStorage.getItem('role');
         const storedId = localStorage.getItem('userId');
@@ -32,7 +35,7 @@ function Dashboard() {
         if(!token) navigate('/');
         setRole(storedRole);
 
-        // 1. FETCH FULL DETAILS
+        // Fetch User Details
         axios.get(`http://localhost:8081/member-details/${storedId}`, { headers: { Authorization: token } })
             .then(res => {
                 if(res.data.user) {
@@ -43,6 +46,7 @@ function Dashboard() {
             })
             .catch(err => console.log(err));
 
+        // Fetch Members if Leader
         if(storedRole === 'leader') {
             axios.get('http://localhost:8081/members', { headers: { Authorization: token } })
                 .then(res => setMembers(res.data.Result || []));
@@ -101,28 +105,33 @@ function Dashboard() {
                 ></div>
             )}
 
-            {/* Navbar with Notifications */}
+            {/* Navbar */}
             <nav className='dashnav relative z-50'>
                 <div className='dashnava'>
                     <h1>Cluster Management System</h1>
                     <div className='flex items-center gap-4'>
+                        
+                        {/* Notification Bell */}
                         <div className='relative'>
-                            <div className='bg-blue-800 text-blue cursor-pointer px-4 py-1 hover:bg-blue-700 rounded-[10px] transition' onClick={() => setShowNotif(!showNotif)}>
-                                <span className='text-[5px] text-white'>Notifications</span>
+                            <div className='cursor-pointer p-2 hover:bg-white/10 rounded-full transition' onClick={() => setShowNotif(!showNotif)}>
+                                <span className='text-2xl text-white'>🔔</span>
                                 {unreadCount > 0 && (
-                                    <span className='absolute bottom-6 left-[90px] bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full border border-white/20 shadow-md'>
+                                    <span className='absolute top-0 right-0 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full border border-white/20 shadow-md'>
                                         {unreadCount}
                                     </span>
                                 )}
                             </div>
                             
+                            {/* Notification Dropdown */}
                             {showNotif && (
                                 <div className='absolute right-0 top-full mt-4 w-96 max-h-[80vh] overflow-y-auto 
                                                 bg-white/30 backdrop-blur-[100px] border border-white/30 
                                                 rounded-[20px] shadow-2xl z-50 transform origin-top-right transition-all'>
+                                    
                                     <div className='p-4 border-b border-white/20 sticky top-0 bg-white/20 backdrop-blur-xl z-10'>
                                         <h3 className='text-white text-sm uppercase tracking-wide'>Notifications</h3>
                                     </div>
+
                                     <div className='flex flex-col'>
                                         {notifications.length > 0 ? notifications.map(n => (
                                             <div 
@@ -137,13 +146,16 @@ function Dashboard() {
                                                 </p>
                                             </div>
                                         )) : (
-                                            <div className='p-8 text-center text-white/60 text-sm'>No notifications yet.</div>
+                                            <div className='p-8 text-center text-white/60 text-sm'>
+                                                No notifications yet.
+                                            </div>
                                         )}
                                     </div>
                                 </div>
                             )}
                         </div>
-                        <button onClick={handleLogout} >
+
+                        <button onClick={handleLogout} className="border border-white/50 bg-white/10 hover:bg-red-600/80 text-white px-4 py-1.5 rounded-[10px] text-sm transition">
                             Logout
                         </button>
                     </div>
@@ -152,7 +164,7 @@ function Dashboard() {
 
             <div className='max-w-6xl mx-auto p-6 space-y-8 relative z-0'>
                 
-                {/* --- HEADER SECTION --- */}
+                {/* Header Section */}
                 <div className='dashhead'>
                     {role === 'leader' ? (
                         // ADMIN VIEW
@@ -164,11 +176,11 @@ function Dashboard() {
                             <div className='flex flex-col gap-3 w-full md:w-auto'>
                                 <div className='flex gap-2'>
                                     <input type="password" placeholder="New Admin Password" className='dashadpw' value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                                    <button onClick={handleResetAdminPassword} className='bg-blue-800 hover:bg-blue-700 text-white px-4 py-2 rounded-[14px] shadow transition text-sm whitespace-nowrap'>Update Password</button>
+                                    <button onClick={handleResetAdminPassword} className='bg-white/0 border border-white hover:bg-red-600 text-white px-4 py-2 rounded-[10px] shadow transition text-sm whitespace-nowrap'>Reset PW</button>
                                 </div>
                                 <div className='flex gap-2'>
                                     <input type="text" placeholder="New Phone Number" className='dashadpw' value={newPhone} onChange={e => setNewPhone(e.target.value)} />
-                                    <button onClick={handleUpdateAdminPhone} className='bg-blue-800 hover:bg-blue-700 text-white px-4 py-2 rounded-[14px] shadow transition text-sm whitespace-nowrap'>Update Phone</button>
+                                    <button onClick={handleUpdateAdminPhone} className='bg-white/0 border border-white hover:bg-green-600 text-white px-4 py-2 rounded-[10px] shadow transition text-sm whitespace-nowrap'>Update Phone</button>
                                 </div>
                             </div>
                         </div>
@@ -201,7 +213,7 @@ function Dashboard() {
                     )}
                 </div>
 
-                {/* --- LEADER ONLY: MEMBER LIST --- */}
+                {/* Leader: Member List */}
                 {role === 'leader' && (
                     <div className='dashmember'>
                         <div className='flex justify-between items-center mb-6'>
@@ -234,12 +246,11 @@ function Dashboard() {
                     </div>
                 )}
 
-                {/* --- MEMBER ONLY: TABLE WITH FILTER --- */}
+                {/* Member: Financial Records */}
                 {role !== 'leader' && (
-                    <div className='bg-white/0 backdrop-blur-[10px] rounded-[30px] shadow-sm border border-gray-200 overflow-hidden'>
+                    <div className='bg-white/20 backdrop-blur-[50px] rounded-[30px] shadow-sm border border-gray-200 overflow-hidden'>
                         <div className='p-6 border-b border-white/10 flex justify-between items-center'>
                             <h2 className='text-xl text-white'>My Financial Records</h2>
-                            {/* NEW: Sort Filter Dropdown */}
                             <select 
                                 className='border bg-white/20 text-white border-white/30 rounded-[20px] text-sm p-3 focus:outline-none focus:border-blue-500 [&>option]:text-black'
                                 value={filterType} 
@@ -257,7 +268,7 @@ function Dashboard() {
                                 <tbody className='divide-y divide-gray-100'>
                                     {filteredRecords.length > 0 ? filteredRecords.map((rec, i) => (
                                         <tr key={i} className='hover:bg-white/20 transition'>
-                                            <td className=' text-white px-6 py-4 capitalize font-medium'>
+                                            <td className=' text-white px-6 py-4 capitalize'>
                                                 {rec.type === 'loan_payment' && rec.loan_name ? 
                                                     <span>Loan Pmt: {rec.loan_name}</span> : 
                                                     rec.type.replace('_', ' ')
