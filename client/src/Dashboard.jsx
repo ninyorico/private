@@ -6,10 +6,10 @@ function Dashboard() {
     // 1. STATE DECLARATIONS
     const [role, setRole] = useState('');
     const [members, setMembers] = useState([]);
-    const [records, setRecords] = useState([]); 
-    const [notifications, setNotifications] = useState([]); 
+    const [records, setRecords] = useState([]);
+    const [notifications, setNotifications] = useState([]);
     const [showNotif, setShowNotif] = useState(false);
-    
+
     // Filter State
     const [filterType, setFilterType] = useState('all');
 
@@ -22,7 +22,7 @@ function Dashboard() {
         insuranceTotal: 0
     });
 
-    const [newPassword, setNewPassword] = useState(''); 
+    const [newPassword, setNewPassword] = useState('');
     const [newPhone, setNewPhone] = useState('');
     const navigate = useNavigate();
 
@@ -31,23 +31,25 @@ function Dashboard() {
         const storedRole = localStorage.getItem('role');
         const storedId = localStorage.getItem('userId');
         const token = localStorage.getItem('token');
-        
-        if(!token) navigate('/');
+
+        if (!token) navigate('/');
         setRole(storedRole);
 
         // Fetch User Details
         axios.get(`http://localhost:8081/member-details/${storedId}`, { headers: { Authorization: token } })
             .then(res => {
-                if(res.data.user) {
+                if (res.data.user) {
                     setMyData(res.data);
-                    setRecords(res.data.records); 
+                    setRecords(res.data.records || []); // <<<--- FIX IS HERE
                     setNotifications(res.data.notifications || []);
                 }
             })
             .catch(err => console.log(err));
 
+
+
         // Fetch Members if Leader
-        if(storedRole === 'leader') {
+        if (storedRole === 'leader') {
             axios.get('http://localhost:8081/members', { headers: { Authorization: token } })
                 .then(res => setMembers(res.data.Result || []));
         }
@@ -59,7 +61,7 @@ function Dashboard() {
         const token = localStorage.getItem('token');
         axios.put(`http://localhost:8081/mark-notification-read/${id}`, {}, { headers: { Authorization: token } })
             .then(() => {
-                setNotifications(notifications.map(n => n.id === id ? {...n, is_read: 1} : n));
+                setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: 1 } : n));
             });
     };
 
@@ -68,23 +70,23 @@ function Dashboard() {
     // --- HANDLERS ---
     const handleResetAdminPassword = () => {
         const token = localStorage.getItem('token');
-        if(!newPassword) return alert("Enter password");
-        axios.put('http://localhost:8081/reset-admin-password', { new_password: newPassword }, { headers: { Authorization: token } }).then(res => { if(res.data.Status === "Success") alert("Success"); });
+        if (!newPassword) return alert("Enter password");
+        axios.put('http://localhost:8081/reset-admin-password', { new_password: newPassword }, { headers: { Authorization: token } }).then(res => { if (res.data.Status === "Success") alert("Success"); });
     };
     const handleUpdateAdminPhone = () => {
         const token = localStorage.getItem('token');
-        if(!newPhone) return alert("Enter phone");
-        axios.put('http://localhost:8081/update-admin-phone', { new_phone: newPhone }, { headers: { Authorization: token } }).then(res => { if(res.data.Status === "Success") alert("Success"); });
+        if (!newPhone) return alert("Enter phone");
+        axios.put('http://localhost:8081/update-admin-phone', { new_phone: newPhone }, { headers: { Authorization: token } }).then(res => { if (res.data.Status === "Success") alert("Success"); });
     };
     const handleDeleteMember = (e, memberId) => {
-        e.stopPropagation(); 
-        if(!window.confirm("Delete member?")) return;
+        e.stopPropagation();
+        if (!window.confirm("Delete member?")) return;
         const token = localStorage.getItem('token');
-        axios.delete(`http://localhost:8081/delete-member/${memberId}`, { headers: { Authorization: token } }).then(res => { if(res.data.Status === "Success") setMembers(members.filter(m => m.id !== memberId)); });
+        axios.delete(`http://localhost:8081/delete-member/${memberId}`, { headers: { Authorization: token } }).then(res => { if (res.data.Status === "Success") setMembers(members.filter(m => m.id !== memberId)); });
     };
 
-    const loanProgress = myData.activeLoan 
-        ? ((myData.activeLoan.total_amount - myData.activeLoan.current_balance) / myData.activeLoan.total_amount) * 100 
+    const loanProgress = myData.activeLoan
+        ? ((myData.activeLoan.total_amount - myData.activeLoan.current_balance) / myData.activeLoan.total_amount) * 100
         : 0;
 
     // --- FILTER LOGIC ---
@@ -96,10 +98,10 @@ function Dashboard() {
 
     return (
         <div className='dashscreen min-h-screen'>
-            
+
             {/* --- FOCUS OVERLAY --- */}
             {showNotif && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300"
                     onClick={() => setShowNotif(false)}
                 ></div>
@@ -110,7 +112,7 @@ function Dashboard() {
                 <div className='dashnava'>
                     <h1>Cluster Management System</h1>
                     <div className='flex items-center gap-4'>
-                        
+
                         {/* Notification Bell */}
                         <div className='relative'>
                             <div className='cursor-pointer p-2 hover:bg-white/10 rounded-full transition' onClick={() => setShowNotif(!showNotif)}>
@@ -121,28 +123,28 @@ function Dashboard() {
                                     </span>
                                 )}
                             </div>
-                            
+
                             {/* Notification Dropdown */}
                             {showNotif && (
                                 <div className='absolute right-0 top-full mt-4 w-96 max-h-[80vh] overflow-y-auto 
                                                 bg-white/30 backdrop-blur-[100px] border border-white/30 
                                                 rounded-[20px] shadow-2xl z-50 transform origin-top-right transition-all'>
-                                    
+
                                     <div className='p-4 border-b border-white/20 sticky top-0 bg-white/20 backdrop-blur-xl z-10'>
                                         <h3 className='text-white text-sm uppercase tracking-wide'>Notifications</h3>
                                     </div>
 
                                     <div className='flex flex-col'>
                                         {notifications.length > 0 ? notifications.map(n => (
-                                            <div 
-                                                key={n.id} 
-                                                onClick={() => handleMarkRead(n.id)} 
+                                            <div
+                                                key={n.id}
+                                                onClick={() => handleMarkRead(n.id)}
                                                 className={`p-4 border-b border-white/10 cursor-pointer transition-colors duration-200
                                                             ${n.is_read ? 'bg-transparent text-white/60 hover:bg-white/10' : 'bg-white/10 text-white hover:bg-white/20'}`}
                                             >
                                                 <p className='text-sm leading-relaxed'>{n.message}</p>
                                                 <p className={`text-xs mt-2 ${n.is_read ? 'text-white/40' : 'text-blue-200'}`}>
-                                                    {new Date(n.created_at).toLocaleDateString()} • {new Date(n.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                    {new Date(n.created_at).toLocaleDateString()} • {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </p>
                                             </div>
                                         )) : (
@@ -163,7 +165,7 @@ function Dashboard() {
             </nav>
 
             <div className='max-w-6xl mx-auto p-6 space-y-8 relative z-0'>
-                
+
                 {/* Header Section */}
                 <div className='dashhead'>
                     {role === 'leader' ? (
@@ -189,7 +191,7 @@ function Dashboard() {
                         <div className='flex flex-col gap-6'>
                             <div className='flex flex-col md:flex-row gap-6 items-center md:items-start'>
                                 <div className='w-32 h-32 rounded-full overflow-hidden border-4 border-gray-100 shadow-sm flex-shrink-0 bg-gray-200'>
-                                    {myData.user.profile_picture ? <img src={`http://localhost:8081/images/${myData.user.profile_picture}`} alt="Profile" className='w-full h-full object-cover'/> : <div className='w-full h-full flex items-center justify-center text-gray-400'>No Img</div>}
+                                    {myData.user.profile_picture ? <img src={`http://localhost:8081/images/${myData.user.profile_picture}`} alt="Profile" className='w-full h-full object-cover' /> : <div className='w-full h-full flex items-center justify-center text-gray-400'>No Img</div>}
                                 </div>
                                 <div className='flex-1 space-y-2 text-center md:text-left'>
                                     <h2 className='text-2xl text-white'>{myData.user.full_name}</h2>
@@ -227,7 +229,7 @@ function Dashboard() {
                                     <div key={index} onClick={() => navigate(`/member/${member.id}`)} className='membercard'>
                                         <div className='flex items-center gap-4'>
                                             <div className='w-12 h-12 rounded-[7px] bg-gray-200 overflow-hidden flex-shrink-0'>
-                                                {member.profile_picture ? <img src={`http://localhost:8081/images/${member.profile_picture}`} className='w-full h-full object-cover'/> : <div className='w-full h-full flex items-center justify-center text-xs text-gray-500'>No Img</div>}
+                                                {member.profile_picture ? <img src={`http://localhost:8081/images/${member.profile_picture}`} className='w-full h-full object-cover' /> : <div className='w-full h-full flex items-center justify-center text-xs text-gray-500'>No Img</div>}
                                             </div>
                                             <div className='flex-1'>
                                                 <p className='text-white'>{member.full_name}</p>
@@ -251,9 +253,9 @@ function Dashboard() {
                     <div className='bg-white/20 backdrop-blur-[50px] rounded-[30px] shadow-sm border border-gray-200 overflow-hidden'>
                         <div className='p-6 border-b border-white/10 flex justify-between items-center'>
                             <h2 className='text-xl text-white'>My Financial Records</h2>
-                            <select 
+                            <select
                                 className='border bg-white/20 text-white border-white/30 rounded-[20px] text-sm p-3 focus:outline-none focus:border-blue-500 [&>option]:text-black'
-                                value={filterType} 
+                                value={filterType}
                                 onChange={(e) => setFilterType(e.target.value)}
                             >
                                 <option value="all">Show All</option>
@@ -269,8 +271,8 @@ function Dashboard() {
                                     {filteredRecords.length > 0 ? filteredRecords.map((rec, i) => (
                                         <tr key={i} className='hover:bg-white/20 transition'>
                                             <td className=' text-white px-6 py-4 capitalize'>
-                                                {rec.type === 'loan_payment' && rec.loan_name ? 
-                                                    <span>Loan Pmt: {rec.loan_name}</span> : 
+                                                {rec.type === 'loan_payment' && rec.loan_name ?
+                                                    <span>Loan Pmt: {rec.loan_name}</span> :
                                                     rec.type.replace('_', ' ')
                                                 }
                                             </td>
