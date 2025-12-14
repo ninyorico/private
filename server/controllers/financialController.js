@@ -2,22 +2,77 @@ const Financial = require('../models/financialModel');
 const Notification = require('../models/notificationModel');
 const User = require('../models/userModel');
 
+// --- HELPER: Calculate Next Date based on Day Name ---
+function getNextDayOfWeek(startDate, dayName) {
+    const dayMap = {
+        "Sunday": 0, "Monday": 1, "Tuesday": 2, "Wednesday": 3,
+        "Thursday": 4, "Friday": 5, "Saturday": 6
+    };
+    
+    const resultDate = new Date(startDate.getTime());
+    resultDate.setHours(0,0,0,0);
+
+    const targetDay = dayMap[dayName];
+    const currentDay = resultDate.getDay();
+    
+    // Calculate days to add. If today is the target day, we schedule for next week (7 days later)
+    let distance = (targetDay + 7 - currentDay) % 7;
+    if (distance === 0) distance = 7;
+    
+    resultDate.setDate(resultDate.getDate() + distance);
+    return resultDate;
+}
+
 // --- LOANS ---
 exports.assignLoan = (req, res) => {
     if (req.user.role !== 'leader') return res.json({ Error: "Access Denied" });
-    const { user_id, amount, loan_name } = req.body;
+    
+    // Destructure new inputs: weeks, payment_day, weekly_amount
+    const { user_id, amount, loan_name, weeks, payment_day, weekly_amount } = req.body;
 
     Financial.findActiveLoan(user_id, (err, result) => {
         if (result.length > 0) return res.json({ Error: "Member already has an active loan." });
 
-        const loanData = { user_id, amount, loan_name: loan_name || 'Personal Loan' };
-        Financial.createLoan(loanData, (err) => {
+        const loanData = { 
+            user_id, 
+            amount, 
+            loan_name: loan_name || 'Personal Loan',
+            weeks_to_pay: weeks,       // Save terms to DB
+            payment_day: payment_day,  // Save preferred day to DB
+            weekly_amount: weekly_amount
+        };
+
+        Financial.createLoan(loanData, (err, loanResult) => {
             if (err) return res.json({ Error: "Database Error" });
+
+            // GET THE NEW LOAN ID (Assuming standard MySQL result structure)
+            const newLoanId = loanResult.insertId;
+
+            // --- AUTOMATIC SCHEDULE GENERATION ---
+            // Create a pending record for every week based on the terms
+            let currentDateTracker = new Date();
+            
+            // Loop through the number of weeks
+            for(let i = 0; i < weeks; i++) {
+                currentDateTracker = getNextDayOfWeek(currentDateTracker, payment_day);
+                
+                const recordData = {
+                    user_id: user_id,
+                    type: 'loan_payment',
+                    amount: weekly_amount,
+                    due_date: currentDateTracker.toISOString().split('T')[0], // Format YYYY-MM-DD
+                    loan_id: newLoanId,
+                    status: 'pending' // These will show up in history immediately
+                };
+
+                // Insert record (Fire and forget for loop speed, or use Promise.all in production)
+                Financial.createRecord(recordData, () => {});
+            }
 
             // Notifications
             User.findById(user_id, (err, userRes) => {
                 const memberName = userRes[0]?.full_name || "Member";
-                const memberMsg = `New Loan Assigned: ${loanData.loan_name} - ₱${amount}`;
+                const memberMsg = `New Loan: ${loanData.loan_name} - ₱${amount}. Payable in ${weeks} weeks (₱${weekly_amount}/week).`;
                 const adminMsg = `You assigned Loan (${loanData.loan_name}) to ${memberName}`;
                 
                 Notification.create(user_id, memberMsg, () => {});
@@ -26,6 +81,19 @@ exports.assignLoan = (req, res) => {
                 return res.json({ Status: "Success" });
             });
         });
+    });
+};
+
+// --- NEW: DELETE LOAN ---
+exports.deleteActiveLoan = (req, res) => {
+    if (req.user.role !== 'leader') return res.json({ Error: "Access Denied" });
+    const loanId = req.params.loanId;
+
+    // Call Model to delete loan. 
+    // NOTE: Ensure your SQL Model also deletes associated financial_records OR you use ON DELETE CASCADE in your database schema.
+    Financial.deleteLoan(loanId, (err) => {
+        if(err) return res.json({ Error: "Error deleting loan" });
+        return res.json({ Status: "Success" });
     });
 };
 
