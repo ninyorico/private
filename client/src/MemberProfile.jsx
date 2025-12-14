@@ -21,9 +21,25 @@ function MemberProfile() {
     // --- FINANCIAL FORMS ---
     const [loanAmount, setLoanAmount] = useState('');
     const [loanName, setLoanName] = useState('');
+    
+    // --- NEW LOAN TERM STATES ---
+    const [loanWeeks, setLoanWeeks] = useState(1);
+    const [loanDay, setLoanDay] = useState('Monday');
+    const [weeklyPayment, setWeeklyPayment] = useState(0);
+
     const [paymentForm, setPaymentForm] = useState({ type: 'savings', amount: '', due_date: '' });
 
     useEffect(() => { fetchData(); }, [id]);
+
+    // --- AUTO CALCULATE WEEKLY PAYMENT ---
+    useEffect(() => {
+        if(loanAmount && loanWeeks > 0) {
+            const calculated = (parseFloat(loanAmount) / parseInt(loanWeeks)).toFixed(2);
+            setWeeklyPayment(calculated);
+        } else {
+            setWeeklyPayment(0);
+        }
+    }, [loanAmount, loanWeeks]);
 
     const fetchData = () => {
         const token = localStorage.getItem('token');
@@ -95,13 +111,50 @@ function MemberProfile() {
     // --- FINANCIAL HANDLERS ---
     const handleCreateLoan = () => {
         const token = localStorage.getItem('token');
-        if(!loanAmount) return alert("Please enter an amount");
-        axios.post('http://localhost:8081/assign-loan', { user_id: id, amount: loanAmount, loan_name: loanName }, { headers: { Authorization: token } })
+        if(!loanAmount || !loanWeeks) return alert("Please fill all loan details");
+        
+        // Prepare Payload
+        const payload = {
+            user_id: id,
+            amount: loanAmount,
+            loan_name: loanName,
+            weeks: loanWeeks,
+            payment_day: loanDay,
+            weekly_amount: weeklyPayment
+        };
+
+        if(!window.confirm(`Create Loan?\nAmount: ${loanAmount}\nTerms: ${loanWeeks} weeks\nPay: ₱${weeklyPayment} every ${loanDay}`)) return;
+
+        axios.post('http://localhost:8081/assign-loan', payload, { headers: { Authorization: token } })
             .then(res => {
-                if(res.data.Status === "Success") { alert("Loan Created"); setLoanAmount(''); setLoanName(''); fetchData(); } 
+                if(res.data.Status === "Success") { 
+                    alert("Loan Created & Schedule Generated"); 
+                    setLoanAmount(''); 
+                    setLoanName(''); 
+                    // Reset defaults
+                    setLoanWeeks(1);
+                    fetchData(); 
+                } 
                 else alert(res.data.Error);
             });
     };
+
+    const handleDeleteLoan = () => {
+        if(!data.activeLoan) return;
+        if(!window.confirm("WARNING: This will delete the active loan and all its associated history. Are you sure?")) return;
+
+        const token = localStorage.getItem('token');
+        axios.delete(`http://localhost:8081/delete-active-loan/${data.activeLoan.id}`, { headers: { Authorization: token } })
+            .then(res => {
+                if(res.data.Status === "Success") {
+                    alert("Loan Deleted Successfully");
+                    fetchData();
+                } else {
+                    alert(res.data.Error);
+                }
+            })
+            .catch(err => console.log(err));
+    }
 
     const handleAssignRecord = (e) => {
         e.preventDefault();
@@ -172,7 +225,6 @@ function MemberProfile() {
                                 <div><label className='text-xs font-bold text-white uppercase'>Spouse</label><input type="text" name="spouse_name" value={editForm.spouse_name} onChange={handleEditChange} className='w-full p-2 rounded-[10px] bg-white/80 text-gray-800' /></div>
                             </div>
 
-                            {/* NEW: AUTHENTICATION UPDATE SECTION */}
                             <h3 className='text-white font-bold border-b border-white/20 pb-2 pt-2'>Login Credentials (Admin Only)</h3>
                             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                                 <div>
@@ -182,7 +234,6 @@ function MemberProfile() {
                                 <div>
                                     <label className='text-xs font-bold text-white uppercase'>New Password</label>
                                     <input type="password" name="new_password" value={authForm.new_password} onChange={handleAuthChange} className='w-full p-2 rounded-[10px] bg-white/80 text-gray-800' placeholder="Set New Password (Strong)" />
-                                    <p className='text-[10px] text-white/60 mt-1'>Must contain 8+ chars, uppercase, number & special char.</p>
                                 </div>
                             </div>
 
@@ -201,19 +252,53 @@ function MemberProfile() {
                     <div className='bg-white/0 backdrop-blur-[50px] p-6 rounded-[30px] shadow border border-white/50'>
                         <h2 className='text-xl font-bold mb-4 text-white'>Loan Tracker</h2>
                         {!data.activeLoan ? (
-                            <div className='flex flex-col gap-3'>
-                                <input type="text" placeholder="Loan Name" className='border p-2 rounded-[15px] w-full outline-none' value={loanName} onChange={e => setLoanName(e.target.value)} />
+                            <div className='flex flex-col gap-4'>
+                                <input type="text" placeholder="Loan Name (e.g. Emergency Loan)" className='border p-2 rounded-[15px] w-full outline-none bg-white/80' value={loanName} onChange={e => setLoanName(e.target.value)} />
+                                
                                 <div className='flex gap-2'>
-                                    <input type="number" placeholder="Enter Amount" className='border p-2 rounded-[15px] w-full outline-none' value={loanAmount} onChange={e => setLoanAmount(e.target.value)} />
-                                    <button onClick={handleCreateLoan} className='bg-blue-600 text-white px-4 rounded-[15px] font-semibold hover:bg-blue-700'>Set Loan</button>
+                                    <div className='w-1/2'>
+                                        <label className='text-xs text-white uppercase font-bold'>Total Amount</label>
+                                        <input type="number" placeholder="Amount" className='border p-2 rounded-[15px] w-full outline-none bg-white/80' value={loanAmount} onChange={e => setLoanAmount(e.target.value)} />
+                                    </div>
+                                    <div className='w-1/2'>
+                                        <label className='text-xs text-white uppercase font-bold'>Weeks to Pay</label>
+                                        <input type="number" placeholder="Weeks" className='border p-2 rounded-[15px] w-full outline-none bg-white/80' value={loanWeeks} onChange={e => setLoanWeeks(e.target.value)} min="1" />
+                                    </div>
                                 </div>
+
+                                <div className='flex gap-2'>
+                                    <div className='w-1/2'>
+                                        <label className='text-xs text-white uppercase font-bold'>Payment Day</label>
+                                        <select className='border p-2 rounded-[15px] w-full outline-none bg-white/80' value={loanDay} onChange={e => setLoanDay(e.target.value)}>
+                                            {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => <option key={d} value={d}>{d}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className='w-1/2'>
+                                        <label className='text-xs text-white uppercase font-bold'>Weekly Payment</label>
+                                        <div className='border p-2 rounded-[15px] w-full bg-white/50 text-gray-700 font-bold'>
+                                            ₱{weeklyPayment}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button onClick={handleCreateLoan} className='bg-blue-600 text-white px-4 py-3 rounded-[15px] font-semibold hover:bg-blue-700 shadow-md mt-2'>
+                                    Create Loan & Generate Schedule
+                                </button>
                             </div>
                         ) : (
-                            <div className='text-center'>
+                            <div className='text-center relative'>
+                                {/* DELETE BUTTON */}
+                                {userRole === 'leader' && (
+                                    <button onClick={handleDeleteLoan} className='absolute top-0 right-0 bg-red-500/20 hover:bg-red-600 text-red-100 hover:text-white border border-red-500 p-2 rounded-lg text-xs transition'>
+                                        Delete Loan
+                                    </button>
+                                )}
+
                                 <h3 className='text-white font-bold text-lg mb-2 border-b border-white/20 pb-2'>{data.activeLoan.loan_name || 'Active Loan'}</h3>
                                 <div className='py-4'><span className='text-6xl font-extrabold text-white drop-shadow-md'>{Math.round(loanProgress)}%</span><p className='text-white/70 uppercase tracking-widest text-sm mt-2'>Loan Paid</p></div>
                                 <div className='flex justify-between items-center border-t border-white/20 pt-4 mt-2 text-white'>
                                     <div className='text-left'><p className='text-xs text-white/60 uppercase'>Total</p><p className='font-bold text-lg'>₱{data.activeLoan.total_amount}</p></div>
+                                    <div className='text-center'><p className='text-xs text-white/60 uppercase'>Terms</p><p className='font-bold text-lg'>{data.activeLoan.weeks_to_pay || '?'} Weeks</p></div>
                                     <div className='text-right'><p className='text-xs text-white/60 uppercase'>Balance</p><p className='font-bold text-lg'>₱{data.activeLoan.current_balance}</p></div>
                                 </div>
                             </div>
@@ -221,11 +306,13 @@ function MemberProfile() {
                     </div>
 
                     <div className='bg-white/0 backdrop-blur-[50px] p-6 rounded-[30px] shadow border border-white/50'>
-                        <h3 className='font-bold mb-3 text-white border-b border-white/20 pb-2'>Assign Payment / Record</h3>
+                        <h3 className='font-bold mb-3 text-white border-b border-white/20 pb-2'>Manual Transaction / Extra Payment</h3>
                         <form onSubmit={handleAssignRecord} className='space-y-3'>
-                            <div><label className='text-xs font-bold text-white uppercase'>Type</label><select className='w-full border p-2 rounded-[10px] bg-white/80 text-gray-800' onChange={e => setPaymentForm({...paymentForm, type: e.target.value})}><option value="savings">Savings</option><option value="insurance">Insurance</option>{data.activeLoan && <option value="loan_payment">Partial Loan Payment</option>}</select></div>
-                            <div><label className='text-xs font-bold text-white uppercase'>Amount</label><input type="number" className='w-full border p-2 rounded-[10px] bg-white/80 text-gray-800' required value={paymentForm.amount} onChange={e => setPaymentForm({...paymentForm, amount: e.target.value})} /></div>
-                            <div><label className='text-xs font-bold text-white uppercase'>Due</label><input type="date" className='w-full p-2 rounded-[10px] bg-white/80 text-gray-800' required value={paymentForm.due_date} onChange={e => setPaymentForm({...paymentForm, due_date: e.target.value})} /></div>
+                            <div><label className='text-xs font-bold text-white uppercase'>Type</label><select className='w-full border p-2 rounded-[10px] bg-white/80 text-gray-800' onChange={e => setPaymentForm({...paymentForm, type: e.target.value})}><option value="savings">Savings</option><option value="insurance">Insurance</option>{data.activeLoan && <option value="loan_payment">Extra Loan Payment</option>}</select></div>
+                            <div className='flex gap-2'>
+                                <input type="number" placeholder="Amount" className='w-full border p-2 rounded-[10px] bg-white/80 text-gray-800' required value={paymentForm.amount} onChange={e => setPaymentForm({...paymentForm, amount: e.target.value})} />
+                                <input type="date" className='w-full p-2 rounded-[10px] bg-white/80 text-gray-800' required value={paymentForm.due_date} onChange={e => setPaymentForm({...paymentForm, due_date: e.target.value})} />
+                            </div>
                             <button className='w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-[15px] font-semibold transition shadow-md'>Assign Record</button>
                         </form>
                     </div>
@@ -243,9 +330,9 @@ function MemberProfile() {
                              <h3 className='font-bold text-white'>Transaction History</h3>
                              <select className='border bg-white/20 text-white border-white/30 rounded-[20px] text-sm p-3 focus:outline-none focus:border-blue-500 [&>option]:text-black' value={filterType} onChange={(e) => setFilterType(e.target.value)}><option value="all">Show All</option><option value="loan">Loans</option><option value="savings">Savings</option><option value="insurance">Insurance</option></select>
                         </div>
-                        <div className='overflow-x-auto'>
-                            <table className='w-full text-sm text-left'><thead className='bg-white/10 text-white '><tr><th className='p-3'>Type</th><th className='p-3'>Amount</th><th className='p-3'>Due</th><th className='p-3'>Status</th><th className='p-3 text-center'>Action</th></tr></thead>
-                                <tbody className='divide-y divide-white/20 px-3'>{filteredRecords.map(rec => (<tr key={rec.id} className='hover:bg-white/10 transition'><td className='p-3 capitalize text-white'>{rec.type === 'loan_payment' && rec.loan_name ? <span>Loan Pmt: {rec.loan_name}</span> : rec.type.replace('_', ' ')}</td><td className='p-3 font-medium text-white'>₱{rec.amount}</td><td className='p-3 text-white'>{new Date(rec.due_date).toLocaleDateString()}</td><td className='p-3'><span className={`px-2 py-1 rounded-full text-xs font-bold ${rec.status === 'paid' ? 'bg-green-100 text-green-700' : rec.status === 'late' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>{rec.status}</span></td><td className='p-3 flex justify-center items-center gap-2'>{rec.status === 'pending' && <button onClick={() => handleMarkPaid(rec.id)} className='bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs hover:bg-blue-200 font-semibold'>Pay</button>}{(rec.status === 'paid' || rec.status === 'late') && <button onClick={() => handleResetStatus(rec.id)} className='text-white hover:text-gray-300 text-xs underline'>Undo</button>}<button onClick={() => handleCancelTransaction(rec.id)} className='text-red-400 hover:text-red-600 bg-red-100/10 p-1 rounded-full w-6 h-6 flex items-center justify-center font-bold'>✕</button></td></tr>))}</tbody></table>
+                        <div className='overflow-x-auto max-h-[500px] overflow-y-auto custom-scrollbar'>
+                            <table className='w-full text-sm text-left'><thead className='bg-white/10 text-white sticky top-0 backdrop-blur-md'><tr><th className='p-3'>Type</th><th className='p-3'>Amount</th><th className='p-3'>Due</th><th className='p-3'>Status</th><th className='p-3 text-center'>Action</th></tr></thead>
+                                <tbody className='divide-y divide-white/20 px-3'>{filteredRecords.map(rec => (<tr key={rec.id} className='hover:bg-white/10 transition'><td className='p-3 capitalize text-white'>{rec.type === 'loan_payment' && rec.loan_name ? <span>Loan Pmt: {rec.loan_name}</span> : rec.type.replace('_', ' ')}</td><td className='p-3 font-medium text-white'>₱{rec.amount}</td><td className='p-3 text-white'>{new Date(rec.due_date).toLocaleDateString()}</td><td className='p-3'><span className={`px-2 py-1 rounded-full text-xs font-bold ${rec.status === 'paid' ? 'bg-green-100 text-green-700' : rec.status === 'late' ? 'bg-orange-100 text-orange-700' : rec.status === 'pending' ? 'bg-blue-900/50 text-blue-200 border border-blue-400' : 'bg-red-100 text-red-700'}`}>{rec.status}</span></td><td className='p-3 flex justify-center items-center gap-2'>{rec.status === 'pending' && <button onClick={() => handleMarkPaid(rec.id)} className='bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs hover:bg-blue-200 font-semibold'>Pay</button>}{(rec.status === 'paid' || rec.status === 'late') && <button onClick={() => handleResetStatus(rec.id)} className='text-white hover:text-gray-300 text-xs underline'>Undo</button>}<button onClick={() => handleCancelTransaction(rec.id)} className='text-red-400 hover:text-red-600 bg-red-100/10 p-1 rounded-full w-6 h-6 flex items-center justify-center font-bold'>✕</button></td></tr>))}</tbody></table>
                         </div>
                     </div>
                 </div>
